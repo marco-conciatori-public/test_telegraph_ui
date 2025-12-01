@@ -1,5 +1,5 @@
 /**
- * buzzer_control.c
+ * buzzer_pigpio.c
  * * A C program for Raspberry Pi to control a 7-wire buzzer module.
  * * Hardware Requirements:
  * - 1 x Ground (GND)
@@ -10,9 +10,9 @@
  * - pigpio library (http://abyz.me.uk/rpi/pigpio/)
  * Install with: sudo apt-get install pigpio
  * * Compilation:
- * gcc -o buzzer.exe buzzer.c -lpigpio -lrt -lpthread
+ * gcc -o buzzer_pigpio.exe buzzer_pigpio.c -lpigpio -lrt -lpthread
  * * Execution:
- * sudo ./buzzer.exe
+ * sudo ./buzzer_pigpio.exe
  */
 
 #include <stdio.h>
