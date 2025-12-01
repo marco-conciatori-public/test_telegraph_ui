@@ -150,7 +150,7 @@ int main(void) {
     printf("Test 1: Ramping Volume Up at 440Hz\n");
     start_tone(440);
     
-    for (int v = 0; v <= 15; v++) {
+    for (int v = MIN_VOLUME; v <= MAX_VOLUME; v++) {
         if (!keep_running) break;
         set_volume(v);
         printf("Volume: %d\n", v);
@@ -177,13 +177,13 @@ int main(void) {
     printf("Test 3: Siren Effect\n");
     while (keep_running) {
         // High pitch, high volume
-        set_volume(15);
+        set_volume(MAX_VOLUME);
         start_tone(880);
         gpioSleep(PI_TIME_RELATIVE, 0, 300000);
         if (!keep_running) break;
 
         // Low pitch, lower volume
-        set_volume(8);
+        set_volume(MAX_VOLUME / 2);
         start_tone(440);
         gpioSleep(PI_TIME_RELATIVE, 0, 300000);
     }
