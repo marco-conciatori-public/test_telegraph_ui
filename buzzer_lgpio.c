@@ -16,7 +16,8 @@
  * sudo ./buzzer_lgpio.exe
  */
 
-#define _POSIX_C_SOURCE 199309L // For nanosleep if needed, though usleep is used
+#define _DEFAULT_SOURCE // Required for usleep in modern glibc
+#define _POSIX_C_SOURCE 200809L 
 
 #include <stdio.h>
 #include <stdlib.h>
