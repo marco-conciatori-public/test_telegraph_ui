@@ -10,10 +10,9 @@
  * - pigpio library (http://abyz.me.uk/rpi/pigpio/)
  * Install with: sudo apt-get install pigpio
  * * Compilation:
- * gcc -o buzzer buzzer_control.c -lpigpio -lrt -lpthread
+ * gcc -o buzzer.exe buzzer.c -lpigpio -lrt -lpthread
  * * Execution:
- * sudo ./buzzer
- * * Author: Gemini (Assisted for Marco Conciatori)
+ * sudo ./buzzer.exe
  */
 
 #include <stdio.h>
