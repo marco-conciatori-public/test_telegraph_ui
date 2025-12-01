@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h> // For usleep
 #include <signal.h>
 #include <assert.h>
@@ -58,8 +59,8 @@ void signal_handler(int sig) {
 }
 
 /**
- * Sets the 4-bit volume pins based on an integer value (0-15).
- * @param volume The desired volume level (0-15). Values are clamped.
+ * Sets the 4-bit volume pins based on an integer value (0-8).
+ * @param volume The desired volume level (0-8). Values are clamped.
  */
 void set_volume(int volume) {
     int temp_volume = volume;
@@ -67,29 +68,45 @@ void set_volume(int volume) {
     if (temp_volume > MAX_VOLUME) temp_volume = MAX_VOLUME;
     if (temp_volume < MIN_VOLUME) temp_volume = MIN_VOLUME;
 
+    bool vol_pin_3 = 0;
+    bool vol_pin_2 = 0;
+    bool vol_pin_1 = 0;
+    bool vol_pin_0 = 0;
+
     // Logic remains the same, just swapping gpioWrite for lgGpioWrite
     // Note: lgGpioWrite takes the chip handle as the first argument
     
     if (temp_volume >= 4) {
         temp_volume = temp_volume - 4;
-        lgGpioWrite(hGpio, PIN_VOL_3, 1);
+        vol_pin_3 = 1;
     }
-    else {
-        lgGpioWrite(hGpio, PIN_VOL_3, 0);
-    }
-    
     if (temp_volume >= 2) {
         temp_volume = temp_volume - 2;
-        lgGpioWrite(hGpio, PIN_VOL_3, 1);
+        vol_pin_2 = 1;
+    }
+    assert(temp_volume >= 0 && temp_volume <= 2);
+    if (temp_volume == 2) {
+        vol_pin_1 = 1;
     }
     else {
-        lgGpioWrite(hGpio, PIN_VOL_3, 0);
+        if (temp_volume == 1) {
+            vol_pin_0 = 1;
+        }
     }
-
-    assert(temp_volume >= 0 && temp_volume <= 1);
-    lgGpioWrite(hGpio, PIN_VOL_0, temp_volume);
+    lgGpioWrite(hGpio, PIN_VOL_3, vol_pin_3);
+    lgGpioWrite(hGpio, PIN_VOL_2, vol_pin_2);
+    lgGpioWrite(hGpio, PIN_VOL_1, vol_pin_1);
+    lgGpioWrite(hGpio, PIN_VOL_0, vol_pin_0);
 
     printf("Volume set to: %d\n", volume);
+}
+
+/**
+ * Stops the Clock/Tone signal.
+ */
+void stop_tone() {
+    lgTxPwm(hGpio, PIN_CLOCK, 0, 0, 0, 0); // 0 Frequency stops it
+    lgGpioWrite(hGpio, PIN_CLOCK, 0);      // Ensure low state
 }
 
 /**
@@ -100,21 +117,13 @@ void set_volume(int volume) {
 void start_tone(int frequency_hz) {
     if (frequency_hz <= 0) {
         // Stop PWM
-        lgTxPwm(hGpio, PIN_CLOCK, 0, 0, 0, 0);
+        stop_tone();
         return;
     }
 
     // lgTxPwm(handle, gpio, freq, duty_cycle_percent, pulse_width, pulse_cycles)
     // We use frequency and duty cycle mode.
     lgTxPwm(hGpio, PIN_CLOCK, frequency_hz, PWM_DUTY_50, 0, 0);
-}
-
-/**
- * Stops the Clock/Tone signal.
- */
-void stop_tone() {
-    lgTxPwm(hGpio, PIN_CLOCK, 0, 0, 0, 0); // 0 Frequency stops it
-    lgGpioWrite(hGpio, PIN_CLOCK, 0);      // Ensure low state
 }
 
 /**
@@ -144,8 +153,8 @@ int setup_gpio() {
         return -1;
     }
 
-    // Initialize with 0 volume and no tone
-    set_volume(0);
+    // Initialize with MIN_VOLUME volume and no tone
+    set_volume(MIN_VOLUME);
     stop_tone();
 
     return 0;
@@ -170,7 +179,7 @@ int main(void) {
     for (int v = MIN_VOLUME; v <= MAX_VOLUME; v++) {
         if (!keep_running) break;
         set_volume(v);
-        usleep(200000); // 200ms
+        usleep(1000000); // 1 second
     }
 
     if (keep_running) {
@@ -205,7 +214,7 @@ int main(void) {
     // --- Cleanup ---
     printf("\nShutting down...\n");
     stop_tone();
-    set_volume(0);
+    set_volume(MIN_VOLUME);
     
     // Free the GPIO pins
     lgGpioFree(hGpio, PIN_CLOCK);
