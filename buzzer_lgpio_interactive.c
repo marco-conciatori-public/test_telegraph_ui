@@ -1,5 +1,5 @@
 /**
- * buzzer_control_pi5.c
+ * buzzer_lgpio_interactive.c
  * A C program for Raspberry Pi 5 to control a 7-wire buzzer module.
  * * ADAPTED FOR RASPBERRY PI 5 (RP1 CHIP)
  * * * Hardware Requirements:
@@ -11,9 +11,9 @@
  * - liblgpio-dev (The modern replacement for pigpio on Pi 5)
  * Install with: sudo apt-get install liblgpio-dev
  * * * Compilation:
- * gcc -o buzzer_pi5 buzzer_pi5.c -llgpio
+ * gcc -o buzzer_lgpio_interactive.exe buzzer_lgpio_interactive.c -llgpio
  * * * Execution:
- * sudo ./buzzer_pi5
+ * sudo ./buzzer_lgpio_interactive.exe
  */
 
 #define _DEFAULT_SOURCE // Required for usleep in modern glibc
