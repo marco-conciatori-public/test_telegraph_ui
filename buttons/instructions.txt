@@ -1,0 +1,38 @@
+I2C Button Reader for Raspberry Pi 5
+
+1. Hardware Setup
+
+Ensure your I2C device is wired correctly to the Pi 5 GPIO header:
+SDA: Pin 3 (GPIO 2)
+SCL: Pin 5 (GPIO 3)
+VCC: 3.3V or 5V (Depends on your specific button module)
+GND: Ground
+The INT Pin (Optional but Recommended)
+
+If you wish to use the INT cable:
+Connect it to a free GPIO pin (e.g., GPIO 17).
+Modify the C code to use libgpiod. Instead of the usleep(50000) loop, you would wait for a falling edge event on GPIO 17.
+
+2. Enable I2C
+
+On your Raspberry Pi, ensure I2C is enabled:
+Run sudo raspi-config
+Navigate to Interface Options -> I2C -> Yes.
+Reboot if prompted.
+
+3. Find your Address
+
+Before compiling, find the hexadecimal address of your button module:
+sudo apt-get install i2c-tools
+i2cdetect -y 1
+Look for a number in the grid (e.g., 27, 20, 3f). Update the #define I2C_ADDR line in i2c_buttons.c to match this number (e.g., 0x20).
+
+4. Compile and Run
+
+Save the C code as i2c_buttons.c.
+
+Compile:
+gcc -o button_reader i2c_buttons.c
+
+Run:
+./button_reader
