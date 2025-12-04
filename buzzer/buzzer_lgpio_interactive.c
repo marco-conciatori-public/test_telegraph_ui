@@ -11,9 +11,9 @@
  * - liblgpio-dev (The modern replacement for pigpio on Pi 5)
  * Install with: sudo apt-get install liblgpio-dev
  * * * Compilation:
- * gcc -o buzzer_lgpio_interactive.exe buzzer_lgpio_interactive.c -llgpio
+ * gcc -o buzzer/buzzer_lgpio_interactive.exe buzzer/buzzer_lgpio_interactive.c -llgpio
  * * * Execution:
- * sudo ./buzzer_lgpio_interactive.exe
+ * sudo ./buzzer/buzzer_lgpio_interactive.exe
  */
 
 #define _DEFAULT_SOURCE // Required for usleep in modern glibc
