@@ -1,5 +1,5 @@
 /**
- * buzzer_lgpio_interactive.c
+ * buzzer_interactive_single_pins.c
  * A C program for Raspberry Pi 5 to control a 7-wire buzzer module.
  * * ADAPTED FOR RASPBERRY PI 5 (RP1 CHIP)
  * * * Hardware Requirements:
@@ -11,9 +11,9 @@
  * - liblgpio-dev (The modern replacement for pigpio on Pi 5)
  * Install with: sudo apt-get install liblgpio-dev
  * * * Compilation:
- * gcc -o buzzer/buzzer_lgpio_interactive_single_pins.exe buzzer/buzzer_lgpio_interactive_single_pins.c -llgpio
+ * gcc -o buzzer/buzzer_interactive_single_pins buzzer/buzzer_interactive_single_pins.c -llgpio
  * * * Execution:
- * sudo ./buzzer/buzzer_lgpio_interactive_single_pins.exe
+ * sudo ./buzzer/buzzer_interactive_single_pins
  */
 
 #define _DEFAULT_SOURCE // Required for usleep in modern glibc
@@ -31,7 +31,7 @@
 // --- GPIO Pin Definitions ---
 // Note: On Raspberry Pi 5, the 40-pin header is typically controlled 
 // by GPIO Chip 4. Use `gpiodetect` to verify if unsure.
-#define GPIO_CHIP   10
+#define GPIO_CHIP   4
 
 #define PIN_CLOCK   18  // PWM Pin
 #define PIN_VOL_0   23  // LSB
@@ -41,8 +41,6 @@
 
 // Constants
 #define PWM_DUTY_50 50.0 // Duty cycle in percentage for lgpio
-#define MAX_VOLUME  8
-#define MIN_VOLUME  0
 #define FREQ_STEP   50   // Hz step for arrows
 #define MIN_FREQ    100
 #define MAX_FREQ    2000
@@ -87,15 +85,13 @@ void enable_raw_mode() {
 }
 
 /**
- * Sets the 4-bit volume pins based on an integer value (0-8).
- * @param volume The desired volume level (0-8). Values are clamped.
+ * Sets the 4-bit volume pins.
  */
 void set_volume(bool vol_pin_3, bool vol_pin_2, bool vol_pin_1, bool vol_pin_0) {  
     lgGpioWrite(hGpio, PIN_VOL_3, vol_pin_3);
     lgGpioWrite(hGpio, PIN_VOL_2, vol_pin_2);
     lgGpioWrite(hGpio, PIN_VOL_1, vol_pin_1);
     lgGpioWrite(hGpio, PIN_VOL_0, vol_pin_0);
-    // printf("Volume set to: %d\n", volume);
 }
 
 /**
@@ -108,28 +104,25 @@ void stop_tone() {
 
 /**
  * Starts the Clock/Tone signal at a specific frequency.
- * Uses lgTxPwm for software/hardware timed PWM.
  * @param frequency_hz Frequency in Hertz
  */
 void start_tone(int frequency_hz) {
     if (frequency_hz <= 0) {
-        // Stop PWM
         stop_tone();
         return;
     }
-
-    // lgTxPwm(handle, gpio, freq, duty_cycle_percent, pulse_width, pulse_cycles)
-    // We use frequency and duty cycle mode.
     lgTxPwm(hGpio, PIN_CLOCK, frequency_hz, PWM_DUTY_50, 0, 0);
 }
-
 
 /**
  * Initializes GPIO pins and library.
  */
 int setup_gpio() {
     // Open the GPIO chip
+    // Try opening chip 4 (Standard Pi 5) if 10 fails, or pass via arg in real scenario
     hGpio = lgGpiochipOpen(GPIO_CHIP);
+    
+    // Fallback logic could be added here, but sticking to define
     if (hGpio < 0) {
         fprintf(stderr, "Failed to open GPIO Chip %d. \n"
                         "On Pi 5, header pins are usually on Chip 4.\n"
@@ -139,7 +132,6 @@ int setup_gpio() {
 
     // Set pin modes to Output
     int err = 0;
-    // We OR the errors to check if any failed
     err |= lgGpioClaimOutput(hGpio, 0, PIN_CLOCK, 0);
     err |= lgGpioClaimOutput(hGpio, 0, PIN_VOL_0, 0);
     err |= lgGpioClaimOutput(hGpio, 0, PIN_VOL_1, 0);
@@ -168,36 +160,37 @@ int main(void) {
 
     printf("System Ready.\n");
     printf("Controls:\n");
-    printf("  [w]  pin 3 to 1\n");
-    printf("  [a]  pin 3 to 0\n");
-    printf("  [e]  pin 2 to 1\n");
-    printf("  [s]  pin 2 to 0\n");
-    printf("  [r]  pin 1 to 1\n");
-    printf("  [d]  pin 1 to 0\n");
-    printf("  [t]  pin 0 to 1\n");
-    printf("  [f]  pin 0 to 0\n");
-    printf("  [RIGHT] Increase Frequency (+%dHz)\n", FREQ_STEP);
-    printf("  [LEFT]  Decrease Frequency (-%dHz)\n", FREQ_STEP);
+    printf("  [w/a]  Pin 3 (ON/OFF)\n");
+    printf("  [e/s]  Pin 2 (ON/OFF)\n");
+    printf("  [r/d]  Pin 1 (ON/OFF)\n");
+    printf("  [t/f]  Pin 0 (ON/OFF)\n");
+    printf("  [ARROWS] Frequency +/- %dHz\n", FREQ_STEP);
     printf("  [q]     Quit\n");
     printf("\n");
 
     // Enable raw mode for immediate keypress detection
     enable_raw_mode();
 
-    int current_vol = 1;
+    // State variables for individual pins
+    bool v3 = 0;
+    bool v2 = 0;
+    bool v1 = 0;
+    bool v0 = 0;
+
     int current_freq = 440;
     
     // Set initial state
-    set_volume(0, 0, 0, 0);
+    set_volume(v3, v2, v1, v0);
     start_tone(current_freq);
-    printf("\rVolume: %d | Freq: %d Hz   ", current_vol, current_freq);
+    
+    printf("\rPins [3210]: %d%d%d%d | Freq: %d Hz   ", v3, v2, v1, v0, current_freq);
     fflush(stdout);
 
     char c;
     while (keep_running && read(STDIN_FILENO, &c, 1) == 1) {
         if (c == 'q') break;
 
-        // Detect ANSI Escape sequences (Arrow keys are \033 [ A/B/C/D)
+        // Detect ANSI Escape sequences (Arrow keys)
         if (c == '\033') {
             char seq[2];
             if (read(STDIN_FILENO, &seq[0], 1) == 0) continue;
@@ -213,25 +206,37 @@ int main(void) {
                         break;
                 }
             }
+        } 
+        else {
+            // Manual Pin Control Logic
+            switch(c) {
+                case 'w': v3 = 1; break;
+                case 'a': v3 = 0; break;
+                
+                case 'e': v2 = 1; break;
+                case 's': v2 = 0; break;
+                
+                case 'r': v1 = 1; break;
+                case 'd': v1 = 0; break;
+                
+                case 't': v0 = 1; break;
+                case 'f': v0 = 0; break;
+            }
         }
 
         // Apply changes
-        set_volume(current_vol);
+        set_volume(v3, v2, v1, v0);
         start_tone(current_freq);
         
-        // Print status (carriage return \r overwrites the line)
-        printf("\rVolume: %d | Freq: %d Hz   ", current_vol, current_freq);
+        // Print status (binary representation of pins)
+        printf("\rPins [3210]: %d%d%d%d | Freq: %d Hz   ", v3, v2, v1, v0, current_freq);
         fflush(stdout);
     }
 
     // --- Cleanup ---
-    // Cleanup is handled by signal handler breaking the loop
-    // and atexit(disable_raw_mode) restoring terminal.
-    
     stop_tone();
     set_volume(0, 0, 0, 0);
     
-    // Free the GPIO pins
     lgGpioFree(hGpio, PIN_CLOCK);
     lgGpioFree(hGpio, PIN_VOL_0);
     lgGpioFree(hGpio, PIN_VOL_1);
@@ -240,6 +245,5 @@ int main(void) {
 
     lgGpiochipClose(hGpio);
     
-    // The message "Terminal mode restored" will print automatically via atexit
     return 0;
 }
