@@ -33,10 +33,10 @@
 #define GPIO_CHIP   10 
 
 #define PIN_CLOCK   18  // PWM Pin
-#define PIN_VOL_0   23  // LSB
+#define PIN_VOL_0   23
 #define PIN_VOL_1   24
 #define PIN_VOL_2   25
-#define PIN_VOL_3   8   // MSB
+#define PIN_VOL_3   22
 
 // Constants
 #define PWM_DUTY_50 50.0 // Duty cycle in percentage for lgpio
