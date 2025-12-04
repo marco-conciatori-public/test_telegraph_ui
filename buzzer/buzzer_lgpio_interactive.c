@@ -31,7 +31,7 @@
 // --- GPIO Pin Definitions ---
 // Note: On Raspberry Pi 5, the 40-pin header is typically controlled 
 // by GPIO Chip 4. Use `gpiodetect` to verify if unsure.
-#define GPIO_CHIP   4 
+#define GPIO_CHIP   10 
 
 #define PIN_CLOCK   18  // PWM Pin
 #define PIN_VOL_0   23  // LSB
