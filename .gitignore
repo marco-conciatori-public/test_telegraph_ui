@@ -1,3 +1,4 @@
 /.vscode
 /info.txt
 *.exe
+*.~lock.*
