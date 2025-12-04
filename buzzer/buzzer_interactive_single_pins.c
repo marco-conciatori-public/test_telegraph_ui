@@ -216,10 +216,16 @@ int main(void) {
                 case 'e': v2 = 1; break;
                 case 's': v2 = 0; break;
                 
-                case 'r': v1 = 1; break;
+                case 'r': 
+                    if (v0 == 1) v0 = 0; // Ensure not both 1
+                    v1 = 1;
+                    break;
                 case 'd': v1 = 0; break;
                 
-                case 't': v0 = 1; break;
+                case 't': 
+                    if (v1 == 1) v1 = 0; // Ensure not both 1
+                    v0 = 1;
+                    break;
                 case 'f': v0 = 0; break;
             }
         }
