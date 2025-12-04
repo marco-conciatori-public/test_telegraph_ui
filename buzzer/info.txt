@@ -1,0 +1,28 @@
+I have interpreted the "Clock" signal as the frequency source (the tone generator) and the 4-bit interface as
+ a parallel volume control (0-15).
+
+Notes for Setup
+Wiring:
+
+I defined the Clock on GPIO 18 (Pin 12 on the physical header), which is a hardware PWM pin on the Pi, though pigpio
+can handle PWM on any pin.
+
+The Volume Bits are on GPIOs 23, 24, 25, 8.
+
+Ensure the GND of the buzzer module is connected to a Pi GND pin.
+
+Ensure the 5V of the buzzer is connected to a Pi 5V pin.
+
+Compiling & Running: Since pigpio interacts directly with the hardware registers, you must link the pthread and rt
+libraries and run the executable with sudo.
+
+Bash
+
+gcc -o buzzer buzzer_control.c -lpigpio -lrt -lpthread
+sudo ./buzzer
+
+Clock Signal: I implemented the "Clock" signal as a 50% duty cycle square wave (PWM). The frequency of this
+square wave determines the pitch of the sound, while your 4-bit interface controls the amplitude (loudness).
+
+Let me know if the "Clock" pin on your specific module functions differently (e.g., if it's a latch clock for a
+shift register instead of the audio source), and I can adjust the driver logic!
