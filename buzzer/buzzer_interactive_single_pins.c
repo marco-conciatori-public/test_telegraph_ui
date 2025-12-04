@@ -210,23 +210,16 @@ int main(void) {
         else {
             // Manual Pin Control Logic
             switch(c) {
-                case 'w': v3 = 1; break;
-                case 'a': v3 = 0; break;
-                
-                case 'e': v2 = 1; break;
-                case 's': v2 = 0; break;
-                
-                case 'r': 
-                    if (v0 == 1) v0 = 0; // Ensure not both 1
-                    v1 = 1;
+                case 'a': v3 = !v3; break;
+                case 's': v2 = !v2; break;
+                case 'd': 
+                    v1 = !v1;
+                    if (v1) v0 = 0; // Ensure not both 1
+                    break;                
+                case 'f': 
+                    v0 = !v0;
+                    if (v0) v1 = 0; // Ensure not both 1
                     break;
-                case 'd': v1 = 0; break;
-                
-                case 't': 
-                    if (v1 == 1) v1 = 0; // Ensure not both 1
-                    v0 = 1;
-                    break;
-                case 'f': v0 = 0; break;
             }
         }
 
