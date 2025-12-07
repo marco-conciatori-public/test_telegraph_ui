@@ -160,10 +160,10 @@ int main(void) {
 
     printf("System Ready.\n");
     printf("Controls:\n");
-    printf("  [w/a]  Pin 3 (ON/OFF)\n");
-    printf("  [e/s]  Pin 2 (ON/OFF)\n");
-    printf("  [r/d]  Pin 1 (ON/OFF)\n");
-    printf("  [t/f]  Pin 0 (ON/OFF)\n");
+    printf("  [a]  Pin 3 (ON/OFF)\n");
+    printf("  [s]  Pin 2 (ON/OFF)\n");
+    printf("  [d]  Pin 1 (ON/OFF)\n");
+    printf("  [f]  Pin 0 (ON/OFF)\n");
     printf("  [ARROWS] Frequency +/- %dHz\n", FREQ_STEP);
     printf("  [q]     Quit\n");
     printf("\n");
