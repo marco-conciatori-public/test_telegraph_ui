@@ -1,0 +1,24 @@
+SPI-based WS2812B Test (Raspberry Pi 5)
+    This method uses the hardware SPI controller (spidev) to drive the LEDs. This bypasses the hardware incompatibility issues of the standard libraries on the Pi 5.
+
+1. Hardware Connections (CHANGED)
+    LED 5V -> Raspberry Pi 5V (Pin 2 or 4).
+    LED GND -> Raspberry Pi GND (Pin 6 or 9).
+    LED DIN -> GPIO 10 (SPI0 MOSI). This is Physical Pin 19.
+    (Note: Level shifter advice still applies. If LEDs flicker, you need 3.3V -> 5V conversion on Pin 19).
+
+2. Enable SPI on Raspberry Pi
+    Check if it's active: ls /dev/spi* should show /dev/spidev0.0.
+
+3. Compile and Run
+    Compile:
+    gcc -o led_test_spi.exe led_test_spi.c
+
+    Run (needs sudo for hardware access):
+    sudo ./led_test_spi.exe
+
+How it works (The Circumvention)
+    The Pi 5 has a new I/O chip (RP1) that breaks old methods. However, the Linux Kernel supports SPI natively. We set the SPI clock to 2.4MHz.
+    To send a WS2812 0 bit, we send SPI bits 100 (1/3 duty cycle).
+    To send a WS2812 1 bit, we send SPI bits 110 (2/3 duty cycle).
+    This creates a perfect waveform for the LEDs without needing special drivers.
