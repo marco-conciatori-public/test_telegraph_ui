@@ -12,10 +12,11 @@ SPI-based WS2812B Test (Raspberry Pi 5)
 
 3. Compile and Run
     Compile:
-    gcc -o leds/led_test_spi.exe leds/led_test_spi.c
+    gcc -o leds/led_test_spi_improved_ui.exe leds/led_test_spi_improved_ui.c
+    gcc -o leds/led_test_spi_improved_ui.exe leds/led_test_spi_improved_ui.c
 
     Run (needs sudo for hardware access):
-    sudo ./leds/led_test_spi.exe
+    sudo ./leds/led_test_spi_improved_ui.exe
 
 How it works (The Circumvention)
     The Pi 5 has a new I/O chip (RP1) that breaks old methods. However, the Linux Kernel supports SPI natively. We set the SPI clock to 2.4MHz.
