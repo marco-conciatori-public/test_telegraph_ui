@@ -22,7 +22,7 @@
 #define KEY_DOWN  1001
 #define KEY_OTHER 0
 #define KEY_Q     'q' // Quit
-#define KEY_A     'a' // Reset to LED 1 (Moved from 'w')
+#define KEY_A     'a' // Reset to LED 1
 #define KEY_R     'r' // Red
 #define KEY_G     'g' // Green
 #define KEY_B     'b' // Blue
