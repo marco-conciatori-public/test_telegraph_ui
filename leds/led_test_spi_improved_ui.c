@@ -260,13 +260,12 @@ int main() {
         int key = get_key();
 
         switch (key) {
-            // Navigation
             case KEY_UP:
-                // Go to next LED (wrap around to 0 if at the end)
+                // Go to next LED
                 current_led = (current_led + 1) % LED_COUNT;
                 break;
             case KEY_DOWN:
-                // Go to previous LED (wrap around to LED_COUNT-1 if at 0)
+                // Go to previous LED
                 current_led = (current_led - 1 + LED_COUNT) % LED_COUNT;
                 break;
 
@@ -284,7 +283,6 @@ int main() {
                 current_color = COLOR_WHITE;
                 break;
 
-            // Reset Selection (moved from 'w' to 'a')
             case KEY_A:
                 current_led = 0;
                 break;
