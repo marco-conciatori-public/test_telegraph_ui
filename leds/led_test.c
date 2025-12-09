@@ -10,7 +10,7 @@
 #define TARGET_FREQ     WS2811_TARGET_FREQ
 #define GPIO_PIN        18   // PCM/PWM pin. Pin 12 (physical) on the header.
 #define DMA             10   // DMA channel to use
-#define LED_COUNT       50   // Number of LEDs in your chain
+#define LED_COUNT       186   // Number of LEDs in your chain
 #define STRIP_TYPE      WS2811_STRIP_GRB // PDF Page 4 confirms GRB order
 
 // Global variable for the LED string structure

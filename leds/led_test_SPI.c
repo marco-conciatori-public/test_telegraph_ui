@@ -10,7 +10,7 @@
 #include <signal.h>
 
 // --- CONFIGURATION ---
-#define LED_COUNT 50
+#define LED_COUNT 186
 #define SPI_DEVICE "/dev/spidev0.0"
 #define SPI_FREQ 2400000 
 #define BITS_PER_PIXEL 24
