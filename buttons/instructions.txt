@@ -22,7 +22,7 @@ Look for a number in the grid (e.g., 27, 20, 3f). Update the #define I2C_ADDR li
 
 4. Compile and Run
 Compile:
-    gcc -o buttons/read_buttons_no_interrupt.exe buttons/read_buttons_no_interrupt.c
+    gcc -o buttons/read_buttons.exe buttons/read_buttons.c
 
 Run:
-    ./buttons/read_buttons_no_interrupt.exe
+    ./buttons/read_buttons.exe
