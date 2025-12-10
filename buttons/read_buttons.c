@@ -42,6 +42,10 @@ int setup_gpio_interrupt() {
     if (fd != -1) {
         write(fd, GPIO_INT_PIN, strlen(GPIO_INT_PIN));
         close(fd);
+        
+        // Wait 500ms for the OS to create the filesystem nodes
+        // Without this, the next step fails because the directory doesn't exist yet.
+        usleep(500000); 
     } else {
         // If fail, pin might already be exported, which is fine
     }
