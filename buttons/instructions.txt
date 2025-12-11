@@ -16,13 +16,14 @@ Reboot if prompted.
 
 3. Find your Address
 Before compiling, find the hexadecimal address of your button module:
-sudo apt-get install i2c-tools
 i2cdetect -y 1
 Look for a number in the grid (e.g., 27, 20, 3f). Update the #define I2C_ADDR line in i2c_buttons.c to match this number (e.g., 0x20).
 
 4. Compile and Run
 Compile:
     gcc -o buttons/read_buttons.exe buttons/read_buttons.c
+    gcc -o buttons/read_buttons_lgpio.exe buttons/read_buttons_lgpio.c -llgpio
 
 Run:
     ./buttons/read_buttons.exe
+    ./buttons/read_buttons_lgpio.exe
