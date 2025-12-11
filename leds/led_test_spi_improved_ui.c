@@ -168,7 +168,7 @@ uint8_t clamp(int val) {
 // Updates the color of the current LED and refreshes the strip
 void update_display() {
     // 1. Clear all LEDs (optional, but good practice for single-LED control)
-    memset(tx_buffer, 0, tx_buffer_len);
+    // memset(tx_buffer, 0, tx_buffer_len);
     
     // 2. Set the current LED to the current color
     set_pixel(current_led_index, current_color);
