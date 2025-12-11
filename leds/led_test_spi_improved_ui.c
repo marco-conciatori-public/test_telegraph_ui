@@ -76,7 +76,7 @@ void cleanup(int signum) {
     // to ensure the console is usable immediately after the SIGINT message.
     restore_terminal_settings();
     
-    printf("\nExiting and clearing LEDs. Bye!\n");
+    printf("\nExiting and clearing LEDs.\n");
     exit(0);
 }
 
@@ -183,7 +183,7 @@ void print_status() {
     uint8_t b = current_color & 0xFF;
 
     // Use ANSI codes to clear the line and print the status
-    printf("\r\033[KLED: %03d/%03d | Color: R=%03d G=%03d B=%03d (0x%06X) | Cmd: ", 
+    printf("\r\033[KLED: %03d/%03d | Color: R=%03d G=%03d B=%03d (0x%06X)", 
            current_led_index + 1, LED_COUNT, r, g, b, current_color);
     fflush(stdout);
 }
@@ -193,11 +193,11 @@ void print_help() {
     printf("Controls:\n");
     printf("  [a]: Next LED (circular)\n");
     printf("  [s]: Previous LED (circular)\n");
-    printf("  [e], [r], [t]: make color more red, green, or blue respectively\n");
-    printf("  [d]: Increase intensity\n");
-    printf("  [f]: Decrease intensity\n");
-    printf("  [w]: Set color to White (0xFFFFFF)\n");
-    printf("  [q]: Quit program (Ctrl+C also works)\n");
+    printf("  [w]: Set color to White\n");
+    printf("  [e]/[r]/[t]: make color more red/green/blue respectively\n");
+    printf("  [d]: + intensity\n");
+    printf("  [f]: - intensity\n");
+    printf("  [q]: Close program\n");
     printf("----------------------------------\n");
 }
 
