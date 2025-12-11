@@ -235,6 +235,8 @@ int main() {
         // Process the command
         switch (command) {
             case 'q': // Quit
+                current_color = 0x000000;
+                update_display();
                 cleanup(0);
                 break;
 
