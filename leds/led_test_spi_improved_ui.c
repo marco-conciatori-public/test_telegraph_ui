@@ -18,7 +18,7 @@
 #define BITS_PER_PIXEL 24
 #define SPI_BITS_PER_LED_BIT 3
 #define COLOR_STEP 16 // Step size for R, G, B shifts
-#define INTENSITY_STEP 10 // Step size for intensity changes
+#define INTENSITY_STEP 20 // Step size for intensity changes
 
 // Global state and file descriptors
 int spi_fd = -1;
