@@ -86,7 +86,7 @@ void encode_byte(uint8_t val, uint8_t *ptr) {
 }
 
 void set_pixel(int index, uint32_t color) {
-    if (index >= LED_COUNT) return;
+    if (index < 0 || index >= LED_COUNT) return;
 
     // Extract RGB
     uint8_t r = (color >> 16) & 0xFF;
@@ -103,6 +103,7 @@ void set_pixel(int index, uint32_t color) {
 }
 
 void show() {
+    if (spi_fd < 0) return; // Guard against uninitialized FD
     if (write(spi_fd, tx_buffer, tx_buffer_len) < 0) {
         perror("SPI Write failed");
     }
