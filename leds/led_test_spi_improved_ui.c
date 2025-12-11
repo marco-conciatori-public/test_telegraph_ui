@@ -25,7 +25,7 @@ uint8_t *tx_buffer = NULL;
 size_t tx_buffer_len = 0;
 struct termios saved_terminal_settings;
 int current_led_index = 0;
-uint32_t current_color = 0xFFFFFF; // Start color: White
+uint32_t current_color = 0x9F9F9F; // Start color: White
 
 // Forward declarations
 void show();
@@ -190,13 +190,13 @@ void print_status() {
 void print_help() {
     printf("\n--- Interactive LED Controller ---\n");
     printf("Controls:\n");
-    printf("  'a': Next LED (circular)\n");
-    printf("  's': Previous LED (circular)\n");
-    printf("  'r', 'g', 'b': Shift color component by +/- %d\n", COLOR_STEP);
-    printf("  'd': Increase intensity\n");
-    printf("  'f': Decrease intensity\n");
-    printf("  'w': Set color to White (0xFFFFFF)\n");
-    printf("  'q': Quit program (Ctrl+C also works)\n");
+    printf("  [a]: Next LED (circular)\n");
+    printf("  [s]: Previous LED (circular)\n");
+    printf("  [r], [g], [b]: Shift color component by +/- %d\n", COLOR_STEP);
+    printf("  [d]: Increase intensity\n");
+    printf("  [f]: Decrease intensity\n");
+    printf("  [w]: Set color to White (0xFFFFFF)\n");
+    printf("  [q]: Quit program (Ctrl+C also works)\n");
     printf("----------------------------------\n");
 }
 
