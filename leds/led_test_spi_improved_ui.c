@@ -284,7 +284,7 @@ int main() {
 
             case 'd': // Increase Intensity (scale all RGB components)
             {
-                uint8_t max_val = (uint8_t)fmax(current_r, fmax(current_g, current_b));
+                uint8_t max_val = r > g ? (r > b ? r : b) : (g > b ? g : b);
 
                 // Handle the "black" edge case (R=G=B=0)
                 if (max_val == 0) {
@@ -306,9 +306,9 @@ int main() {
                     double scale_factor = (double)new_max_val / max_val;
 
                     // Apply the scaling and update the components, rounding the result
-                    r = (uint8_t)round((double)current_r * scale_factor);
-                    g = (uint8_t)round((double)current_g * scale_factor);
-                    b = (uint8_t)round((double)current_b * scale_factor);
+                    r = (uint8_t)round((double)r * scale_factor);
+                    g = (uint8_t)round((double)g * scale_factor);
+                    b = (uint8_t)round((double)b * scale_factor);
                 }
                 
                 new_color = (r << 16) | (g << 8) | b;
@@ -319,7 +319,7 @@ int main() {
                 
             case 'f': // Decrease Intensity (scale all RGB components)
             {
-                uint8_t max_val = (uint8_t)fmax(current_r, fmax(current_g, current_b));
+                uint8_t max_val = r > g ? (r > b ? r : b) : (g > b ? g : b);
                 if (max_val == 0) {
                     // Already black, no change
                     break;
@@ -333,9 +333,9 @@ int main() {
                 double scale_factor = (double)new_max_val / max_val;
 
                 // Apply the scaling and update the components, rounding the result
-                r = (uint8_t)round((double)current_r * scale_factor);
-                g = (uint8_t)round((double)current_g * scale_factor);
-                b = (uint8_t)round((double)current_b * scale_factor);
+                r = (uint8_t)round((double)r * scale_factor);
+                g = (uint8_t)round((double)g * scale_factor);
+                b = (uint8_t)round((double)b * scale_factor);
                 
                 new_color = (r << 16) | (g << 8) | b;
                 current_color = new_color;
