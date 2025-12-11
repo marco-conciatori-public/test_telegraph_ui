@@ -192,7 +192,7 @@ void print_help() {
     printf("Controls:\n");
     printf("  [a]: Next LED (circular)\n");
     printf("  [s]: Previous LED (circular)\n");
-    printf("  [r], [g], [b]: Shift color component by +/- %d\n", COLOR_STEP);
+    printf("  [e], [r], [t]: make color more red, green, or blue respectively\n");
     printf("  [d]: Increase intensity\n");
     printf("  [f]: Decrease intensity\n");
     printf("  [w]: Set color to White (0xFFFFFF)\n");
@@ -239,10 +239,6 @@ int main() {
                 cleanup(0);
                 break;
 
-            case 'h': // Help
-                print_help();
-                break;
-                
             case 'a': // Next LED (circular)
                 current_led_index = (current_led_index + 1) % LED_COUNT;
                 update_display();
@@ -253,21 +249,27 @@ int main() {
                 update_display();
                 break;
 
-            case 'r': // Shift color towards Red
+            case 'e': // Shift color towards Red
                 r = clamp(r + COLOR_STEP);
+                g = clamp(g - COLOR_STEP / 2);
+                b = clamp(b - COLOR_STEP / 2);
                 new_color = (r << 16) | (g << 8) | b;
                 current_color = new_color;
                 update_display();
                 break;
 
-            case 'g': // Shift color towards Green
+            case 'r': // Shift color towards Green
+                r = clamp(r - COLOR_STEP / 2);
                 g = clamp(g + COLOR_STEP);
+                b = clamp(b - COLOR_STEP / 2);
                 new_color = (r << 16) | (g << 8) | b;
                 current_color = new_color;
                 update_display();
                 break;
 
-            case 'b': // Shift color towards Blue
+            case 't': // Shift color towards Blue
+                r = clamp(r - COLOR_STEP / 2);
+                g = clamp(g - COLOR_STEP / 2);
                 b = clamp(b + COLOR_STEP);
                 new_color = (r << 16) | (g << 8) | b;
                 current_color = new_color;
