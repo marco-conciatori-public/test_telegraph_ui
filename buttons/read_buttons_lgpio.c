@@ -113,7 +113,7 @@ int main() {
     // --- STEP 4: CLAIM PIN AND SET INTERRUPT ---
     // Claim Pin 17 as Input, Active Low (Pull-Up not strictly needed if PCA9555 drives it, but safe)
     // LG_SET_PULL_UP ensures the line doesn't float if PCA isn't connected.
-    status = lgGpioClaimAlert(hGpio, 0, LG_EDGE_FALLING, GPIO_INT_PIN, -1);
+    status = lgGpioClaimAlert(hGpio, 0, LG_FALLING_EDGE, GPIO_INT_PIN, -1);
     if (status < 0) {
         fprintf(stderr, "Error claiming GPIO alert: %s\n", lguErrorText(status));
         return 1;
