@@ -109,6 +109,7 @@ int spi_init() {
         return -1;
     }
     memset(tx_buffer, 0, tx_buffer_len);
+    show(); // Clear LEDs on init
     
     return 0;
 }
