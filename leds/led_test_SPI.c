@@ -16,13 +16,6 @@
 #define BITS_PER_PIXEL 24
 #define SPI_BITS_PER_LED_BIT 3
 
-// GRB Format for WS2812B
-typedef struct {
-    uint8_t g;
-    uint8_t r;
-    uint8_t b;
-} pixel_t;
-
 int spi_fd = -1;
 uint8_t *tx_buffer = NULL;
 size_t tx_buffer_len = 0;
