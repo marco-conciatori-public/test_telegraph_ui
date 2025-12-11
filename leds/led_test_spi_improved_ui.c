@@ -67,7 +67,7 @@ void cleanup(int signum) {
     if (tx_buffer) {
         // Clear buffer (all zeros = all LEDs off)
         memset(tx_buffer, 0, tx_buffer_len);
-        if (spi_fd >= 0) write(spi_fd, tx_buffer, tx_buffer_len);
+        show();
         free(tx_buffer);
     }
     if (spi_fd >= 0) close(spi_fd);
