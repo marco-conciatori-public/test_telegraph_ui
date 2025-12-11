@@ -128,7 +128,7 @@ void encode_byte(uint8_t val, uint8_t *ptr) {
 }
 
 void set_pixel(int index, uint32_t color) {
-    if (index >= LED_COUNT || index < 0) return;
+    if (index < 0 || index >= LED_COUNT) return;
 
     // Extract RGB
     uint8_t r = (color >> 16) & 0xFF;
@@ -215,7 +215,7 @@ int main() {
     // Set terminal to raw mode for single-key input
     set_terminal_raw_mode();
 
-    printf("SPI WS2812B Interactive Controller Started (LED Count: %d)\n", LED_COUNT);
+    printf("SPI WS2812B Interactive Controller (LED Count: %d)\n", LED_COUNT);
     print_help();
 
     // Initial display update
