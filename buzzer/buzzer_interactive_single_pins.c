@@ -26,7 +26,7 @@
 #include <signal.h>
 #include <assert.h>
 #include <termios.h> // For raw mode input
-#include <lgpio.h>  // Replaces pigpio
+#include <lgpio.h>
 
 // --- GPIO Pin Definitions ---
 // Note: On Raspberry Pi 5, the 40-pin header is typically controlled 
