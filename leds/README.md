@@ -34,11 +34,11 @@ Note: This creates the libws2811.a static library file.
 1. Save the C code inside the rpi_ws281x folder you just created (or adjust paths accordingly).
 2. Compile command:
 Run this command from inside the rpi_ws281x directory:
-- gcc -o led_test.exe led_test.c libws2811.a -I. -lm
+- gcc -o bin/led_test leds/led_test.c libws2811.a -I. -lm
 
 ## Running the Test
 
 The library requires sudo because it accesses hardware memory directly.
-- sudo ./led_test.exe
+- sudo ./bin/led_test
 
 Press ENTER to step through the LEDs one by one.

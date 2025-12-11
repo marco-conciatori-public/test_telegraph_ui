@@ -21,9 +21,9 @@ Look for a number in the grid (e.g., 27, 20, 3f). Update the #define I2C_ADDR li
 
 4. Compile and Run
 Compile:
-    gcc -o buttons/read_buttons.exe buttons/read_buttons.c
-    gcc -o buttons/read_buttons_lgpio.exe buttons/read_buttons_lgpio.c -llgpio
+    gcc -o bin/read_buttons buttons/read_buttons.c
+    gcc -o bin/read_buttons_lgpio buttons/read_buttons_lgpio.c -llgpio
 
 Run:
-    ./buttons/read_buttons.exe
-    ./buttons/read_buttons_lgpio.exe
+    ./bin/read_buttons
+    ./bin/read_buttons_lgpio
