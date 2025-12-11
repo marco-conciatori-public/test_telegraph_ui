@@ -283,26 +283,32 @@ int main() {
 
             case 'd': // Increase Intensity (scale all RGB components)
             {
-                // Find the highest component to calculate the scaling factor
-                float scale = (255.0 / (float)(r > g ? (r > b ? r : b) : (g > b ? g : b)));
-                
-                // If current max is 0, treat it as black and set to minimal brightness white
-                if (r == 0 && g == 0 && b == 0) {
-                     r = g = b = INTENSITY_STEP;
-                } else {
-                    // Calculate a new target max brightness level
-                    int target_max = clamp((int)(r * scale) + INTENSITY_STEP);
-                    
-                    // Re-scale components
-                    r = clamp((int)(r * (target_max / (float)r)));
-                    g = clamp((int)(g * (target_max / (float)r)));
-                    b = clamp((int)(b * (target_max / (float)r)));
-                }
+                uint8_t max_val = (uint8_t)fmax(current_r, fmax(current_g, current_b));
 
-                // Simpler intensity boost without preserving ratios perfectly
-                // r = clamp(r + INTENSITY_STEP);
-                // g = clamp(g + INTENSITY_STEP);
-                // b = clamp(b + INTENSITY_STEP);
+                // Handle the "black" edge case (R=G=B=0)
+                if (max_val == 0) {
+                    r = INTENSITY_STEP;
+                    g = INTENSITY_STEP;
+                    b = INTENSITY_STEP;
+                } else {
+                    // Calculate the new target maximum value (clamped at 255)
+                    uint8_t new_max_val = (uint8_t)clamp(max_val + INTENSITY_STEP);
+
+                    // If the color is already saturated (max_val == 255) or the increase was 0,
+                    // and new_max_val == max_val, no further change is needed.
+                    if (new_max_val == max_val) {
+                        break;
+                    }
+
+                    // Calculate the scaling factor (always > 1.0)
+                    // floating-point for precise ratio preservation.
+                    double scale_factor = (double)new_max_val / max_val;
+
+                    // Apply the scaling and update the components, rounding the result
+                    r = (uint8_t)round((double)current_r * scale_factor);
+                    g = (uint8_t)round((double)current_g * scale_factor);
+                    b = (uint8_t)round((double)current_b * scale_factor);
+                }
                 
                 new_color = (r << 16) | (g << 8) | b;
                 current_color = new_color;
@@ -312,10 +318,23 @@ int main() {
                 
             case 'f': // Decrease Intensity (scale all RGB components)
             {
-                // Simpler intensity decrease
-                r = clamp(r - INTENSITY_STEP);
-                g = clamp(g - INTENSITY_STEP);
-                b = clamp(b - INTENSITY_STEP);
+                uint8_t max_val = (uint8_t)fmax(current_r, fmax(current_g, current_b));
+                if (max_val == 0) {
+                    // Already black, no change
+                    break;
+                }
+            
+                // Clamp at 0. If the decrease amount is larger than max_val, it becomes black.
+                uint8_t new_max_val = (uint8_t)clamp(max_val - INTENSITY_STEP);
+
+                // Calculate the scaling factor (always < 1.0)
+                // floating-point for precise ratio preservation.
+                double scale_factor = (double)new_max_val / max_val;
+
+                // Apply the scaling and update the components, rounding the result
+                *r = (uint8_t)round((double)current_r * scale_factor);
+                *g = (uint8_t)round((double)current_g * scale_factor);
+                *b = (uint8_t)round((double)current_b * scale_factor);
                 
                 new_color = (r << 16) | (g << 8) | b;
                 current_color = new_color;
