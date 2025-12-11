@@ -9,7 +9,7 @@
 
 // --- CONFIGURATION ---
 #define I2C_DEV_NUM 1
-#define I2C_ADDR 0x27        // Ensure this matches 'i2cdetect -y 1'
+#define I2C_ADDR 0x23        // Ensure this matches 'i2cdetect -y 1'
 #define GPIO_CHIP 4          // RPi 5 uses Chip 4
 #define GPIO_INT_PIN 17      // GPIO pin for interrupt
 
