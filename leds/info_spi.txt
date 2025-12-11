@@ -13,7 +13,8 @@ SPI-based WS2812B Test (Raspberry Pi 5)
 3. Compile and Run
     Compile:
     gcc -o bin/led_test_spi leds/led_test_spi.c
-    gcc -o bin/led_test_spi_improved_ui leds/led_test_spi_improved_ui.c
+    gcc -o bin/led_test_spi_improved_ui leds/led_test_spi_improved_ui.c -lm
+        -lm adds the math library for improved UI version.
 
     Run (needs sudo for hardware access):
     sudo ./bin/led_test_spi
