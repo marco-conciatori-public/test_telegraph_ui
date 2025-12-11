@@ -192,9 +192,9 @@ void print_help() {
     printf("\n--- Interactive LED Controller ---\n");
     printf("Controls:\n");
     printf("  [a]/[s]: next/previous LED (circular)\n");
-    printf("  [w]: Set color to White\n");
-    printf("  [e]/[r]/[t]: color more red/green/blue respectively\n");
     printf("  [d]/[f]: +/- intensity\n");
+    printf("  [e]/[r]/[t]: make color more Red/Green/Blue\n");
+    printf("  [w]: Set color to White\n");
     printf("  [q]: Close program\n");
     printf("----------------------------------\n");
 }
@@ -276,7 +276,7 @@ int main() {
                 break;
                 
             case 'w': // Set color to White
-                current_color = 0xFFFFFF;
+                current_color = 0x8F8F8F;
                 update_display();
                 break;
 
