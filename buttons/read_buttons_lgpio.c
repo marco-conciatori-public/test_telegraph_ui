@@ -11,7 +11,7 @@
 
 // --- CONFIGURATION ---
 #define I2C_DEVICE "/dev/i2c-1"
-#define I2C_ADDR 0x27
+#define I2C_ADDR 0x23
 
 // Raspberry Pi 5 usually uses Chip 4 for the header pins. 
 // If this doesn't work, try 0.
