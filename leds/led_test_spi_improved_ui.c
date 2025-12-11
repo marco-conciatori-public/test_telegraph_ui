@@ -8,7 +8,7 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 #include <signal.h>
-#include <termios.h> // Required for non-canonical input
+#include <termios.h> // For non-canonical input
 
 // --- CONFIGURATION ---
 #define LED_COUNT 186
@@ -16,106 +16,53 @@
 #define SPI_FREQ 2400000 
 #define BITS_PER_PIXEL 24
 #define SPI_BITS_PER_LED_BIT 3
+#define COLOR_STEP 16 // Step size for R, G, B shifts
+#define INTENSITY_STEP 10 // Step size for intensity changes
 
-// --- KEY DEFINITIONS ---
-#define KEY_UP    1000
-#define KEY_DOWN  1001
-#define KEY_OTHER 0
-#define KEY_Q     'q' // Quit
-#define KEY_A     'a' // Reset to LED 1
-#define KEY_R     'r' // Red
-#define KEY_G     'g' // Green
-#define KEY_B     'b' // Blue
-#define KEY_W     'w' // White (New Function)
-
-// --- COLOR DEFINITIONS ---
-#define COLOR_RED    0xFF0000
-#define COLOR_GREEN  0x00FF00
-#define COLOR_BLUE   0x0000FF
-#define COLOR_WHITE  0xFFFFFF
-#define COLOR_OFF    0x000000
-
-// GRB Format for WS2812B
-typedef struct {
-    uint8_t g;
-    uint8_t r;
-    uint8_t b;
-} pixel_t;
-
+// Global state and file descriptors
 int spi_fd = -1;
 uint8_t *tx_buffer = NULL;
 size_t tx_buffer_len = 0;
+struct termios saved_terminal_settings;
+int current_led_index = 0;
+uint32_t current_color = 0xFFFFFF; // Start color: White
 
-// Terminal state variables
-struct termios original_termios;
-int term_mode_set = 0;
+// Forward declarations
+void show();
+void set_pixel(int index, uint32_t color);
+void update_display();
+void restore_terminal_settings();
 
-// --- TERMINAL CONTROL ---
+// --- Terminal Control ---
 
-// Function to reset the terminal to its original state
-void reset_terminal_mode() {
-    if (term_mode_set) {
-        tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
-        term_mode_set = 0;
-    }
+// Restores the terminal to its original, canonical state
+void restore_terminal_settings() {
+    tcsetattr(STDIN_FILENO, TCSANOW, &saved_terminal_settings);
 }
 
-// Function to set the terminal to non-canonical (raw/cbreak) mode
-int set_keypress_mode() {
-    struct termios new_termios;
+// Sets the terminal to non-canonical (raw) mode for single-key input
+void set_terminal_raw_mode() {
+    struct termios tattr;
 
-    if (tcgetattr(STDIN_FILENO, &original_termios) < 0) {
-        perror("tcgetattr failed");
-        return -1;
-    }
+    // Get current terminal settings
+    tcgetattr(STDIN_FILENO, &saved_terminal_settings);
+    // Copy settings to modify
+    tattr = saved_terminal_settings;
 
-    new_termios = original_termios;
+    // Set non-canonical mode: disable ICANON (canonical mode), ECHO (echoing keys), and VMIN/VTIME to read one character immediately
+    tattr.c_lflag &= ~(ICANON | ECHO);
+    tattr.c_cc[VMIN] = 1; // Read 1 character
+    tattr.c_cc[VTIME] = 0; // No timer (wait indefinitely)
 
-    // Set canonical mode off, echo off
-    new_termios.c_lflag &= ~(ICANON | ECHO);
+    // Apply new settings
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &tattr);
 
-    // Set minimum number of characters to read to 1
-    new_termios.c_cc[VMIN] = 1; 
-    // Set timeout to 0 (non-blocking read)
-    new_termios.c_cc[VTIME] = 0; 
-
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &new_termios) < 0) {
-        perror("tcsetattr failed");
-        return -1;
-    }
-
-    term_mode_set = 1;
-    return 0;
+    // Ensure terminal is restored on exit
+    atexit(restore_terminal_settings);
 }
 
-// Custom function to read input and detect special keys (like arrows)
-int get_key() {
-    // Use `fgetc` instead of `getchar` to avoid potential buffering issues
-    int c = fgetc(stdin); 
-
-    // Check for Escape sequence (0x1b)
-    if (c == 0x1b) {
-        // Look for the next two characters in the sequence: [A or [B
-        if (fgetc(stdin) == '[') {
-            switch (fgetc(stdin)) {
-                case 'A': return KEY_UP;   // Up Arrow
-                case 'B': return KEY_DOWN; // Down Arrow
-            }
-        }
-        // If it was just an ESC key or an unknown sequence, treat as other
-        return KEY_OTHER; 
-    }
-
-    // Ignore EOF which is -1
-    return (c == EOF) ? KEY_OTHER : c;
-}
-
-// --- SPI & LED CONTROL ---
-
-// Signal handler to clean up
+// Signal handler to clean up (for Ctrl+C or other signals)
 void cleanup(int signum) {
-    reset_terminal_mode(); // Always reset terminal mode first
-    
     if (tx_buffer) {
         // Clear buffer (all zeros = all LEDs off)
         memset(tx_buffer, 0, tx_buffer_len);
@@ -123,9 +70,16 @@ void cleanup(int signum) {
         free(tx_buffer);
     }
     if (spi_fd >= 0) close(spi_fd);
-    printf("\nExiting and clearing LEDs.\n");
+    
+    // Restore terminal settings is called automatically by atexit, but we call it here explicitly 
+    // to ensure the console is usable immediately after the SIGINT message.
+    restore_terminal_settings();
+    
+    printf("\nExiting and clearing LEDs. Bye!\n");
     exit(0);
 }
+
+// --- SPI and LED Control Functions (from original code, slightly simplified) ---
 
 // Initialize SPI port
 int spi_init() {
@@ -142,11 +96,10 @@ int spi_init() {
     if (ioctl(spi_fd, SPI_IOC_WR_BITS_PER_WORD, &bits) < 0) return -1;
     if (ioctl(spi_fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed) < 0) return -1;
 
-    // Calculate buffer size:
-    // (LEDs * 24 bits-color * 3 bits-spi) / 8 bits-per-byte
+    // Calculate buffer size: (LEDs * 24 bits-color * 3 bits-spi) / 8 bits-per-byte
     tx_buffer_len = (LED_COUNT * BITS_PER_PIXEL * SPI_BITS_PER_LED_BIT) / 8;
     
-    // Add reset padding (>280us low). At 2.4MHz, 100 bytes is plenty.
+    // Add reset padding (>280us low).
     tx_buffer_len += 100; 
 
     tx_buffer = malloc(tx_buffer_len);
@@ -161,14 +114,9 @@ int spi_init() {
 
 // Helper: Encodes a single color byte (8 bits) into 3 SPI bytes (24 bits)
 void encode_byte(uint8_t val, uint8_t *ptr) {
-    // We generate 3 SPI bytes for the 8 bits of 'val'
-    // Data 0 = 100 (binary)
-    // Data 1 = 110 (binary)
-    
     uint32_t p = 0;
     for (int b = 7; b >= 0; b--) {
-        // Shift existing pattern to make room
-        // OR in the new 3-bit pattern (110 or 100)
+        // Data 1 = 110 (binary), Data 0 = 100 (binary)
         p = (p << 3) | (((val >> b) & 1) ? 0b110 : 0b100);
     }
     
@@ -179,14 +127,14 @@ void encode_byte(uint8_t val, uint8_t *ptr) {
 }
 
 void set_pixel(int index, uint32_t color) {
-    if (index < 0 || index >= LED_COUNT) return;
+    if (index >= LED_COUNT || index < 0) return;
 
     // Extract RGB
     uint8_t r = (color >> 16) & 0xFF;
     uint8_t g = (color >> 8) & 0xFF;
     uint8_t b = color & 0xFF;
 
-    // Offset in buffer: index * 9 bytes (because 24 bits * 3 SPI bits / 8 = 9 bytes)
+    // Offset in buffer: index * 9 bytes
     uint8_t *ptr = tx_buffer + (index * 9); 
 
     // WS2812B expects GRB order
@@ -196,116 +144,191 @@ void set_pixel(int index, uint32_t color) {
 }
 
 void show() {
+    if (spi_fd < 0) return; // Guard against uninitialized FD
     if (write(spi_fd, tx_buffer, tx_buffer_len) < 0) {
         perror("SPI Write failed");
     }
 }
 
 void clear() {
-    // Zero out data (leaving the reset padding at the end alone is fine, or zero it all)
     memset(tx_buffer, 0, tx_buffer_len);
     show();
 }
 
-// --- MAIN LOOP LOGIC ---
+// --- Interactive UI Helpers ---
 
-// Function to update the LED state and print status
-void draw_state(int current_led, uint32_t current_color) {
-    // Clear all LEDs
-    clear();
+// Safety clamp function
+uint8_t clamp(int val) {
+    if (val > 255) return 255;
+    if (val < 0) return 0;
+    return (uint8_t)val;
+}
+
+// Updates the color of the current LED and refreshes the strip
+void update_display() {
+    // 1. Clear all LEDs (optional, but good practice for single-LED control)
+    memset(tx_buffer, 0, tx_buffer_len);
     
-    // Set the current LED to the specified color
-    if (current_led >= 0 && current_led < LED_COUNT) {
-        set_pixel(current_led, current_color);
-    }
+    // 2. Set the current LED to the current color
+    set_pixel(current_led_index, current_color);
+    
+    // 3. Push data to the strip
     show();
+}
 
-    // Determine color name for display
-    const char *color_name = "Custom";
-    if (current_color == COLOR_RED) color_name = "Red";
-    else if (current_color == COLOR_GREEN) color_name = "Green";
-    else if (current_color == COLOR_BLUE) color_name = "Blue";
-    else if (current_color == COLOR_WHITE) color_name = "White";
-    else if (current_color == COLOR_OFF) color_name = "Off";
+void print_status() {
+    uint8_t r = (current_color >> 16) & 0xFF;
+    uint8_t g = (current_color >> 8) & 0xFF;
+    uint8_t b = current_color & 0xFF;
 
-    // Print status
-    printf("\rCurrent LED: %-3d/%d. Color: %s. Controls: [^/v] Nav, [r,g,b,w] Color, [a] Reset, [q] Quit.", 
-           current_led + 1, LED_COUNT, color_name);
+    // Use ANSI codes to clear the line and print the status
+    printf("\r\033[KLED: %03d/%03d | Color: R=%03d G=%03d B=%03d (0x%06X) | Cmd: ", 
+           current_led_index + 1, LED_COUNT, r, g, b, current_color);
     fflush(stdout);
 }
 
+void print_help() {
+    printf("\n--- Interactive LED Controller ---\n");
+    printf("Controls:\n");
+    printf("  'a': Next LED (circular)\n");
+    printf("  's': Previous LED (circular)\n");
+    printf("  'r', 'g', 'b': Shift color component by +/- %d\n", COLOR_STEP);
+    printf("  'd': Increase intensity\n");
+    printf("  'f': Decrease intensity\n");
+    printf("  'w': Set color to White (0xFFFFFF)\n");
+    printf("  'q': Quit program (Ctrl+C also works)\n");
+    printf("----------------------------------\n");
+}
+
+
+// --- Main Logic ---
 
 int main() {
+    // Set up signal handler for cleanup (Ctrl+C)
     signal(SIGINT, cleanup);
     
+    // Initialize SPI
     if (spi_init() < 0) {
-        cleanup(0);
+        fprintf(stderr, "SPI Initialization failed.\n");
         return 1;
     }
     
-    if (set_keypress_mode() < 0) {
-        cleanup(0);
-        return 1;
-    }
+    // Set terminal to raw mode for single-key input
+    set_terminal_raw_mode();
 
-    printf("SPI WS2812B Test Started (Pi 5 Compatible)\n");
-    printf("Controls: [^/v] Nav, [r,g,b] Color, [w] White, [a] Reset to LED 1, [q] Quit.\n\n");
+    printf("SPI WS2812B Interactive Controller Started (LED Count: %d)\n", LED_COUNT);
+    print_help();
 
-    int current_led = 0;
-    uint32_t current_color = COLOR_WHITE; // Start with white
+    // Initial display update
+    update_display();
+    print_status();
 
-    draw_state(current_led, current_color);
-
+    char command;
     while (1) {
-        int key = get_key();
+        // Read a single character immediately
+        if (read(STDIN_FILENO, &command, 1) < 1) continue;
 
-        switch (key) {
-            case KEY_UP:
-                // Go to next LED
-                current_led = (current_led + 1) % LED_COUNT;
-                break;
-            case KEY_DOWN:
-                // Go to previous LED
-                current_led = (current_led - 1 + LED_COUNT) % LED_COUNT;
-                break;
-
-            // Color Controls
-            case KEY_R:
-                current_color = COLOR_RED;
-                break;
-            case KEY_G:
-                current_color = COLOR_GREEN;
-                break;
-            case KEY_B:
-                current_color = COLOR_BLUE;
-                break;
-            case KEY_W: // Set to White
-                current_color = COLOR_WHITE;
-                break;
-
-            case KEY_A:
-                current_led = 0;
-                break;
-            
-            // Quit
-            case KEY_Q:
+        uint8_t r = (current_color >> 16) & 0xFF;
+        uint8_t g = (current_color >> 8) & 0xFF;
+        uint8_t b = current_color & 0xFF;
+        uint32_t new_color = current_color;
+        
+        // Process the command
+        switch (command) {
+            case 'q': // Quit
                 cleanup(0);
-                return 0;
+                break;
 
-            case KEY_OTHER:
+            case 'h': // Help
+                print_help();
+                break;
+                
+            case 'a': // Next LED (circular)
+                current_led_index = (current_led_index + 1) % LED_COUNT;
+                update_display();
+                break;
+
+            case 's': // Previous LED (circular)
+                current_led_index = (current_led_index - 1 + LED_COUNT) % LED_COUNT;
+                update_display();
+                break;
+
+            case 'r': // Shift color towards Red
+                r = clamp(r + COLOR_STEP);
+                new_color = (r << 16) | (g << 8) | b;
+                current_color = new_color;
+                update_display();
+                break;
+
+            case 'g': // Shift color towards Green
+                g = clamp(g + COLOR_STEP);
+                new_color = (r << 16) | (g << 8) | b;
+                current_color = new_color;
+                update_display();
+                break;
+
+            case 'b': // Shift color towards Blue
+                b = clamp(b + COLOR_STEP);
+                new_color = (r << 16) | (g << 8) | b;
+                current_color = new_color;
+                update_display();
+                break;
+                
+            case 'w': // Set color to White
+                current_color = 0xFFFFFF;
+                update_display();
+                break;
+
+            case 'd': // Increase Intensity (scale all RGB components)
+            {
+                // Find the highest component to calculate the scaling factor
+                float scale = (255.0 / (float)(r > g ? (r > b ? r : b) : (g > b ? g : b)));
+                
+                // If current max is 0, treat it as black and set to minimal brightness white
+                if (r == 0 && g == 0 && b == 0) {
+                     r = g = b = INTENSITY_STEP;
+                } else {
+                    // Calculate a new target max brightness level
+                    int target_max = clamp((int)(r * scale) + INTENSITY_STEP);
+                    
+                    // Re-scale components
+                    r = clamp((int)(r * (target_max / (float)r)));
+                    g = clamp((int)(g * (target_max / (float)r)));
+                    b = clamp((int)(b * (target_max / (float)r)));
+                }
+
+                // Simpler intensity boost without preserving ratios perfectly
+                // r = clamp(r + INTENSITY_STEP);
+                // g = clamp(g + INTENSITY_STEP);
+                // b = clamp(b + INTENSITY_STEP);
+                
+                new_color = (r << 16) | (g << 8) | b;
+                current_color = new_color;
+                update_display();
+                break;
+            }
+                
+            case 'f': // Decrease Intensity (scale all RGB components)
+            {
+                // Simpler intensity decrease
+                r = clamp(r - INTENSITY_STEP);
+                g = clamp(g - INTENSITY_STEP);
+                b = clamp(b - INTENSITY_STEP);
+                
+                new_color = (r << 16) | (g << 8) | b;
+                current_color = new_color;
+                update_display();
+                break;
+            }
+
             default:
                 // Ignore other keys
                 break;
         }
 
-        if (key != KEY_OTHER) {
-            draw_state(current_led, current_color);
-        }
-        
-        // Short delay to prevent busy-waiting from consuming too much CPU
-        usleep(1000); // 1 millisecond delay
+        // Print status after every command
+        print_status();
     }
-    
-    cleanup(0);
-    return 0;
+
+    return 0; // Should be unreachable
 }
