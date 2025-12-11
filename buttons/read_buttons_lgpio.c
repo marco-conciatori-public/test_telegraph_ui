@@ -36,7 +36,7 @@ long long last_interrupt_time = 0;
 
 // --- INTERRUPT CALLBACK ---
 // This function runs automatically when the INT pin goes LOW
-void on_interrupt(int e, int gpio, int level, long long timestamp, void *userdata) {
+void on_interrupt(int num_alerts, lgGpioAlert_p gpio_alerts, void *userdata) {
     long long now = current_timestamp_ms();
     
     // 1. Debounce: Ignore interrupts that happen within 20ms of the last one
