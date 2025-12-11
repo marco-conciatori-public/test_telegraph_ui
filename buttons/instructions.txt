@@ -22,7 +22,9 @@ i2c_buttons.c to match this number (e.g., 0x20).
 Compile:
     gcc -o bin/read_buttons buttons/read_buttons.c
     gcc -o bin/read_buttons_lgpio buttons/read_buttons_lgpio.c -llgpio
+    gcc -o bin/read_buttons_lgpio_full buttons/read_buttons_lgpio_full.c -llgpio
 
 Run:
     ./bin/read_buttons
     ./bin/read_buttons_lgpio
+    ./bin/read_buttons_lgpio_full
