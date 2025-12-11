@@ -121,6 +121,7 @@ void encode_byte(uint8_t val, uint8_t *ptr) {
         // Data 1 = 110 (binary), Data 0 = 100 (binary)
         p = (p << 3) | (((val >> b) & 1) ? 0b110 : 0b100);
     }
+    printf("pointing to %p\n", ptr);
     
     // Write 3 bytes to the buffer (MSB first)
     ptr[0] = (p >> 16) & 0xFF;
@@ -138,6 +139,7 @@ void set_pixel(int index, uint32_t color) {
 
     // Offset in buffer: index * 9 bytes
     uint8_t *ptr = tx_buffer + (index * 9); 
+    printf("Setting pixel %d to color R=%d G=%d B=%d\n", index, r, g, b);
 
     // WS2812B expects GRB order
     encode_byte(g, ptr);      // Green first (Bytes 0-2)
