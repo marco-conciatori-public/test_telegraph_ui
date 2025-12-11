@@ -332,9 +332,9 @@ int main() {
                 double scale_factor = (double)new_max_val / max_val;
 
                 // Apply the scaling and update the components, rounding the result
-                *r = (uint8_t)round((double)current_r * scale_factor);
-                *g = (uint8_t)round((double)current_g * scale_factor);
-                *b = (uint8_t)round((double)current_b * scale_factor);
+                r = (uint8_t)round((double)current_r * scale_factor);
+                g = (uint8_t)round((double)current_g * scale_factor);
+                b = (uint8_t)round((double)current_b * scale_factor);
                 
                 new_color = (r << 16) | (g << 8) | b;
                 current_color = new_color;
