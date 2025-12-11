@@ -3,29 +3,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <lgpio.h> // Unified library for GPIO and I2C
+#include <lgpio.h>
 #include <time.h>
 
 // --- CONFIGURATION ---
-// The I2C bus index (usually 1 for /dev/i2c-1)
 #define I2C_DEV_NUM 1
-#define I2C_ADDR 0x23
+#define I2C_ADDR 0x27        // Check this with 'i2cdetect -y 1'
+#define GPIO_CHIP 4          // For RPi 5
+#define GPIO_INT_PIN 17      // The GPIO pin connected to PCA9555 INT
 
-// Raspberry Pi 5 usually uses Chip 4 for the header pins.
-#define GPIO_CHIP 4
-#define GPIO_INT_PIN 17
-
-// PCA9555 Commands
-#define CMD_INPUT_PORT_0 0x00
+// PCA9555 Register Addresses
+#define REG_INPUT_0 0x00
+#define REG_CONFIG_0 0x06
 
 // Handles
-int hI2c; // Handle for I2C
-int hGpio; // Handle for GPIO chip
-
-// Track last state to detect edges
+int hI2c;
+int hGpio;
 unsigned char last_state[2] = {0xFF, 0xFF};
 
-// Helper for timing (Debounce)
+// --- HELPERS ---
 long long current_timestamp_ms() {
     struct timespec te; 
     clock_gettime(CLOCK_MONOTONIC, &te);
@@ -33,41 +29,58 @@ long long current_timestamp_ms() {
 }
 long long last_interrupt_time = 0;
 
+// Function to dump all registers for debugging
+void debug_dump_registers() {
+    unsigned char config[2];
+    unsigned char inputs[2];
+    
+    // Read Configuration (Should be 0xFF 0xFF for inputs)
+    lgI2cReadI2CBlockData(hI2c, REG_CONFIG_0, (char*)config, 2);
+    // Read Inputs
+    lgI2cReadI2CBlockData(hI2c, REG_INPUT_0, (char*)inputs, 2);
+
+    printf("\n--- [DEBUG] PCA9555 Register Dump ---\n");
+    printf("Config Regs (0x06, 0x07): 0x%02X 0x%02X (Expected: 0xFF 0xFF)\n", config[0], config[1]);
+    printf("Input  Regs (0x00, 0x01): 0x%02X 0x%02X\n", inputs[0], inputs[1]);
+    
+    // Check INT Pin State physically
+    int pin_level = lgGpioRead(hGpio, GPIO_INT_PIN);
+    printf("RPi GPIO %d Level:        %s\n", GPIO_INT_PIN, pin_level ? "HIGH (1)" : "LOW (0)");
+    
+    if (config[0] != 0xFF || config[1] != 0xFF) {
+        printf("!! WARNING: Ports are not configured as Inputs! Interrupts won't fire.\n");
+    }
+    if (pin_level == 0) {
+        printf("!! WARNING: INT line is LOW. Interrupt is stuck active or missing pull-up.\n");
+    }
+    printf("-------------------------------------\n\n");
+}
+
 // --- INTERRUPT CALLBACK ---
 void on_interrupt(int num_alerts, lgGpioAlert_p gpio_alerts, void *userdata) {
     long long now = current_timestamp_ms();
-    
-    // 1. Debounce: Ignore interrupts within 20ms
-    if (now - last_interrupt_time < 20) return;
+    if (now - last_interrupt_time < 50) return; // 50ms Debounce
     last_interrupt_time = now;
 
-    // 2. Read PCA9555 using lgpio Block Read
-    // This atomic function performs the datasheet sequence:
-    // START -> ADDR+W -> CMD(0x00) -> RESTART -> ADDR+R -> DATA0 -> DATA1 -> STOP
+    printf("\n>>> INTERRUPT DETECTED! Reading data...\n");
+
     unsigned char data[2];
-    int count = lgI2cReadI2CBlockData(hI2c, CMD_INPUT_PORT_0, (char*)data, 2);
+    int count = lgI2cReadI2CBlockData(hI2c, REG_INPUT_0, (char*)data, 2);
 
     if (count != 2) {
-        fprintf(stderr, "Failed to read I2C data. Error: %s\n", lguErrorText(count));
+        fprintf(stderr, "Read failed inside interrupt!\n");
         return;
     }
 
-    // 3. Logic: Compare new data with old data
+    printf("    Raw Data: 0x%02X 0x%02X\n", data[0], data[1]);
+
     for (int i = 0; i < 8; i++) {
-        // Check Port 0
         int isPressed = !((data[0] >> i) & 1);
         int wasPressed = !((last_state[0] >> i) & 1);
-
         if (isPressed && !wasPressed) {
-            printf(">> [INTERRUPT] Button %d on Port 0 Pressed!\n", i);
-            
-            // Example Actions
-            if (i == 0) printf("   -> Sequence A Started\n");
-            if (i == 1) printf("   -> Data Logged\n");
+            printf("    *** Button %d Pressed ***\n", i);
         }
     }
-
-    // Update state
     last_state[0] = data[0];
     last_state[1] = data[1];
 }
@@ -75,54 +88,60 @@ void on_interrupt(int num_alerts, lgGpioAlert_p gpio_alerts, void *userdata) {
 int main() {
     int status;
 
-    // --- STEP 1: OPEN I2C WITH LGPIO ---
-    // Opens /dev/i2c-1 for the device at I2C_ADDR
+    printf("Opening I2C Bus %d...\n", I2C_DEV_NUM);
     hI2c = lgI2cOpen(I2C_DEV_NUM, I2C_ADDR, 0);
     if (hI2c < 0) {
-        fprintf(stderr, "Failed to open I2C: %s\n", lguErrorText(hI2c));
+        fprintf(stderr, "FATAL: Failed to open I2C. Check connections or Address.\n");
         return 1;
     }
 
-    // --- STEP 2: INITIAL I2C READ ---
-    // Read once to clear any stuck interrupts
-    unsigned char init_data[2];
-    status = lgI2cReadI2CBlockData(hI2c, CMD_INPUT_PORT_0, (char*)init_data, 2);
-    if (status == 2) {
-        last_state[0] = init_data[0];
-        last_state[1] = init_data[1];
-        printf("Initial State: Port0=0x%X, Port1=0x%X\n", init_data[0], init_data[1]);
-    } else {
-        fprintf(stderr, "Initial I2C read failed: %s\n", lguErrorText(status));
-    }
-
-    // --- STEP 3: OPEN GPIO CHIP ---
+    printf("Opening GPIO Chip %d...\n", GPIO_CHIP);
     hGpio = lgGpiochipOpen(GPIO_CHIP);
     if (hGpio < 0) {
-        fprintf(stderr, "Error: Could not open GPIO chip %d.\n", GPIO_CHIP);
-        lgI2cClose(hI2c); // Cleanup I2C before exit
+        fprintf(stderr, "FATAL: Failed to open GPIO Chip.\n");
         return 1;
     }
 
-    // --- STEP 4: CLAIM PIN AND SET INTERRUPT ---
+    // --- CRITICAL FIX: ENABLE PULL-UP ---
+    // The INT pin is Open Drain. We MUST enable the Pi's internal pull-up 
+    // if there isn't one on the board.
+    printf("Configuring GPIO %d as Input with Internal PULL-UP...\n", GPIO_INT_PIN);
+    status = lgGpioClaimInput(hGpio, LG_SET_PULL_UP, GPIO_INT_PIN);
+    if (status < 0) {
+        fprintf(stderr, "Error setting pull-up: %s\n", lguErrorText(status));
+        return 1;
+    }
+
+    // Dump initial state
+    debug_dump_registers();
+
+    // Claim Alert
+    printf("Attaching Interrupt Handler (Falling Edge)...\n");
     status = lgGpioClaimAlert(hGpio, 0, LG_FALLING_EDGE, GPIO_INT_PIN, -1);
     if (status < 0) {
-        fprintf(stderr, "Error claiming GPIO alert: %s\n", lguErrorText(status));
-        lgGpiochipClose(hGpio);
-        lgI2cClose(hI2c);
+        fprintf(stderr, "Error claiming alert: %s\n", lguErrorText(status));
         return 1;
     }
-
     lgGpioSetAlertsFunc(hGpio, GPIO_INT_PIN, on_interrupt, NULL);
 
-    printf("Program Running. Waiting for interrupts on GPIO %d (Chip %d)...\n", GPIO_INT_PIN, GPIO_CHIP);
-    printf("Press Enter to quit.\n");
+    printf("Running... Press Buttons now. (Press 'q' and Enter to exit)\n");
 
-    // --- STEP 5: KEEP ALIVE ---
-    while (getchar() != '\n');
+    // --- DEBUG LOOP ---
+    // Instead of sleeping forever, let's print the status every 2 seconds
+    // to see if the line is stuck.
+    while (1) {
+        struct timespec ts = {2, 0}; // 2 seconds
+        nanosleep(&ts, NULL);
+        
+        // Un-comment this line if you suspect the chip is crashing silently:
+        // debug_dump_registers(); 
+        
+        // Simple keep-alive dot
+        printf("."); 
+        fflush(stdout);
+    }
 
-    // Cleanup
     lgGpiochipClose(hGpio);
     lgI2cClose(hI2c);
-    printf("Exiting...\n");
     return 0;
 }
