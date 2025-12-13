@@ -66,8 +66,7 @@ void set_terminal_raw_mode() {
 void cleanup(int signum) {
     if (tx_buffer) {
         // Clear buffer (all zeros = all LEDs off)
-        memset(tx_buffer, 0, tx_buffer_len);
-        show();
+        clear();
         free(tx_buffer);
     }
     if (spi_fd >= 0) close(spi_fd);
@@ -233,13 +232,10 @@ int main() {
         uint8_t r = (current_color >> 16) & 0xFF;
         uint8_t g = (current_color >> 8) & 0xFF;
         uint8_t b = current_color & 0xFF;
-        uint32_t new_color = current_color;
         
         // Process the command
         switch (command) {
             case 'q': // Quit
-                current_color = 0x000000;
-                update_display();
                 cleanup(0);
                 break;
 
@@ -257,8 +253,7 @@ int main() {
                 r = clamp(r + COLOR_STEP);
                 g = clamp(g - COLOR_STEP / 2);
                 b = clamp(b - COLOR_STEP / 2);
-                new_color = (r << 16) | (g << 8) | b;
-                current_color = new_color;
+                current_color = (r << 16) | (g << 8) | b;
                 update_display();
                 break;
 
@@ -266,8 +261,7 @@ int main() {
                 r = clamp(r - COLOR_STEP / 2);
                 g = clamp(g + COLOR_STEP);
                 b = clamp(b - COLOR_STEP / 2);
-                new_color = (r << 16) | (g << 8) | b;
-                current_color = new_color;
+                current_color = (r << 16) | (g << 8) | b;
                 update_display();
                 break;
 
@@ -275,8 +269,7 @@ int main() {
                 r = clamp(r - COLOR_STEP / 2);
                 g = clamp(g - COLOR_STEP / 2);
                 b = clamp(b + COLOR_STEP);
-                new_color = (r << 16) | (g << 8) | b;
-                current_color = new_color;
+                current_color = (r << 16) | (g << 8) | b;
                 update_display();
                 break;
                 
@@ -314,8 +307,7 @@ int main() {
                     b = (uint8_t)round((double)b * scale_factor);
                 }
                 
-                new_color = (r << 16) | (g << 8) | b;
-                current_color = new_color;
+                current_color = (r << 16) | (g << 8) | b;
                 update_display();
                 break;
             }
@@ -340,8 +332,7 @@ int main() {
                 g = (uint8_t)round((double)g * scale_factor);
                 b = (uint8_t)round((double)b * scale_factor);
                 
-                new_color = (r << 16) | (g << 8) | b;
-                current_color = new_color;
+                current_color = (r << 16) | (g << 8) | b;
                 update_display();
                 break;
             }
@@ -355,5 +346,6 @@ int main() {
         print_status();
     }
 
+    cleanup(0);
     return 0; // Should be unreachable
 }
