@@ -179,6 +179,8 @@ void print_status() {
     uint8_t r = (current_color >> 16) & 0xFF;
     uint8_t g = (current_color >> 8) & 0xFF;
     uint8_t b = current_color & 0xFF;
+    
+    // Use ANSI codes to clear the line and print the status
     printf("\r\033[KLED: %03d/%03d | Color: R=%03d G=%03d B=%03d", 
            current_led_index + 1, LED_COUNT, r, g, b);
     fflush(stdout);
